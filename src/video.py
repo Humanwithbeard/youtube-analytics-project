@@ -49,7 +49,5 @@ class PLVideo(Video):
         return video_data
 
 
-if __name__ == '__main__':
-    video1 = Video('AWX4JnAnjBE')
-    video2 = PLVideo('4fObz_qw9u4', 'PLv_zOGKKxVph_8g2Mqc3LMhj0M_BfasbC')
+
 
