@@ -1,92 +1,58 @@
 import json
+import os
+from functools import total_ordering
+
 from googleapiclient.discovery import build
 
 
+@total_ordering
 class Channel:
-    def __init__(self, api_key: str, channel_id: str) -> None:
-        self.api_key = api_key
+    """Класс для ютуб-канала"""
+    api_key: str = os.getenv('AIzaSyDOsEBflTxbKq0zbiuwT1Tp53zY33WQmEI')
+
+    def __init__(self, channel_id: str) -> None:
+        """Экземпляр инициализируется id канала. Дальше все данные будут подтягиваться по API."""
         self.channel_id = channel_id
         self.youtube = self.get_service()
-        self.channel_data = self.fetch_channel_data()
+        self.channel = self.youtube.channels().list(id=channel_id, part='snippet,statistics').execute()
+        self.title = self.channel["items"][0]["snippet"]["title"]
+        self.description = self.channel["items"][0]["snippet"]["description"]
+        self.url = f"https://www.youtube.com/channel/{self.channel_id}"
+        self.subscriber_count = int(self.channel["items"][0]["statistics"]["subscriberCount"])
+        self.video_count = self.channel["items"][0]["statistics"]["videoCount"]
+        self.view_count = self.channel["items"][0]["statistics"]["viewCount"]
 
     def __str__(self):
-        return f"{self.channel_data['title']}, {self.channel_data['link']}"
+        return f"{self.title} ({self.url})"
 
     def __add__(self, other):
-        if isinstance(other, Channel):
-            return self.channel_data['subscriberCount'] + other.channel_data['subscriberCount']
+        return self.subscriber_count + other.subscriber_count
 
     def __sub__(self, other):
-        if isinstance(other, Channel):
-            return self.channel_data['subscriberCount'] - other.channel_data['subscriberCount']
+        return self.subscriber_count - other.subscriber_count
 
     def __eq__(self, other):
-        if isinstance(other, Channel):
-            return self.channel_data['subscriberCount'] == other.channel_data['subscriberCount']
+        return self.subscriber_count == other.subscriber_count
 
     def __lt__(self, other):
-        if isinstance(other, Channel):
-            return self.channel_data['subscriberCount'] < other.channel_data['subscriberCount']
+        return self.subscriber_count < other.subscriber_count
 
-    def __le__(self, other):
-        if isinstance(other, Channel):
-            return self.channel_data['subscriberCount'] <= other.channel_data['subscriberCount']
+    @classmethod
+    def get_service(cls):
+        return build('youtube', 'v3', developerKey=cls.api_key)
 
-    def __gt__(self, other):
-        if isinstance(other, Channel):
-            return self.channel_data['subscriberCount'] > other.channel_data['subscriberCount']
+    def to_json(self, file_name):
+        channel_dict = {
+            "title": self.title,
+            "description": self.description,
+            "url": self.url,
+            "subscriberCount": self.subscriber_count,
+            "videoCount": self.video_count,
+            "viewCount": self.view_count
+        }
+        with open(file_name, "w", encoding="utf-8") as file:
+            json.dump(channel_dict, file, indent=2, ensure_ascii=False)
 
-    def __ge__(self, other):
-        if isinstance(other, Channel):
-            return self.channel_data['subscriberCount'] >= other.channel_data['subscriberCount']
-
-    def get_service(self):
-        return build('youtube', 'v3', developerKey=self.api_key)
-
-    def fetch_channel_data(self):
-        request = self.youtube.channels().list(
-            part='snippet,statistics',
-            id=self.channel_id
-        )
-        response = request.execute()
-
-        if 'items' in response:
-            channel_info = response['items'][0]
-            snippet = channel_info['snippet']
-            statistics = channel_info['statistics']
-
-            channel_data = {
-                'id': self.channel_id,
-                'title': snippet['title'],
-                'description': snippet['description'],
-                'link': f'https://www.youtube.com/channel/{self.channel_id}',
-                'subscriberCount': int(statistics['subscriberCount']),
-                'videoCount': int(statistics['videoCount']),
-                'viewCount': int(statistics['viewCount']),
-            }
-            return channel_data
-
-    def to_json(self, filename):
-        if self.channel_data:
-            with open(filename, 'w', encoding='utf-8') as file:
-                json.dump(self.channel_data, file, ensure_ascii=False, indent=4)
-
-    def print_info(self):
-        if self.channel_data:
-            print("Channel ID:", self.channel_data['id'])
-            print("Channel Name:", self.channel_data['title'])
-            print("Description:", self.channel_data['description'])
-            print("Link:", self.channel_data['link'])
-            print("Subscriber Count:", self.channel_data['subscriberCount'])
-            print("Video Count:", self.channel_data['videoCount'])
-            print("View Count:", self.channel_data['viewCount'])
-        else:
-            print("Channel not found")
-
-
-if __name__ == '__main__':
-    api_key = 'AIzaSyDOsEBflTxbKq0zbiuwT1Tp53zY33WQmEI'
-    channel_id = 'UC-OVMPlMA3-YCIeg4z5z23A'
-    pythchannel = Channel(api_key, channel_id)
-    pythchannel.print_info()
-    pythchannel.to_json('channel_data.json')
+    def print_info(self) -> None:
+        """Выводит в консоль информацию о канале."""
+        print(json.dumps(self.channel, indent=2, ensure_ascii=False))

@@ -1,53 +1,29 @@
-import json
-from googleapiclient.discovery import build
+from src.channel import Channel
 
 
-class Video:
-    def __init__(self, video_id: str) -> None:
+class Video(Channel):
+    def __init__(self, video_id):
         self.video_id = video_id
-        self.youtube = self.get_service()
-        self.video_data = self.fetch_video_data()
-
+        try:
+            self.youtube = self.get_service().videos().list(
+                part='snippet,statistics', id=self.video_id
+            ).execute()
+            self.video_data = self.youtube.get("items")[0]
+        except IndexError as e:
+            self.title = None
+            self.url = None
+            self.view_count = None
+            self.like_count = None
+            print(e)
+        else:
+            self.title = self.video_data.get('snippet').get('title')
+            self.url = f'https://www.youtube.com/watch?v={self.video_id}'
+            self.view_count = int(self.video_data.get('statistics').get('viewCount'))
+            self.like_count = int(self.video_data.get('statistics').get('likeCount'))
     def __str__(self):
-        return f"{self.video_data['title']}"
-
-    def get_service(self):
-        api_key = 'AIzaSyDOsEBflTxbKq0zbiuwT1Tp53zY33WQmEI'
-        return build('youtube', 'v3', developerKey=api_key)
-
-    def fetch_video_data(self):
-        request = self.youtube.videos().list(
-            part='snippet,statistics',
-            id=self.video_id
-        )
-        response = request.execute()
-
-        if 'items' in response:
-            video_info = response['items'][0]
-            snippet = video_info['snippet']
-            statistics = video_info['statistics']
-
-            video_data = {
-                'id': self.video_id,
-                'title': snippet['title'],
-                'link': f'https://www.youtube.com/watch?v={self.video_id}',
-                'viewCount': int(statistics['viewCount']),
-                'likeCount': int(statistics['likeCount']),
-            }
-            return video_data
-
+        return self.title
 
 class PLVideo(Video):
     def __init__(self, video_id, playlist_id):
-        self.playlist_id = playlist_id
-        self.video_id = video_id
         super().__init__(video_id)
-
-    def fetch_video_data(self):
-        video_data = super().fetch_video_data()
-        video_data['playlist_id'] = self.playlist_id
-        return video_data
-
-
-
-
+        self.playlist_id = playlist_id
