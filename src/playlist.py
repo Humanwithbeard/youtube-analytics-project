@@ -1,9 +1,10 @@
 import isodate as isodate
 
 from src.channel import Channel
-from  datetime import timedelta
+from datetime import timedelta
 
-class PlayList:
+
+class Playlist:
     def __init__(self, playlist_id):
         self.playlist_id = playlist_id
         youtube = Channel.get_service().playlistItems().list(
@@ -30,6 +31,7 @@ class PlayList:
             iso_8601_duration = video['contentDetails']['duration']
             total_duration += isodate.parse_duration(iso_8601_duration)
         return total_duration
+
     def show_best_video(self):
-        best_video = max(self.__videos, key=lambda x:x["statistics"]["likeCount"])
+        best_video = max(self.__videos, key=lambda x: x["statistics"]["likeCount"])
         return f"https://youtu.be/{best_video['id']}"
