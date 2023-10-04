@@ -20,10 +20,9 @@ class Video:
             self.title = None
             self.url = None
             self.view_count = None
-            self.like_count = None
 
 
-    def __str__(self):
+      def __str__(self):
         return self.title
 
 
