@@ -17,7 +17,10 @@ class Video:
             self.veuw_count = self.video_response['items'][0]['statistics']['viewCount']
             self.like_count = self.video_response['items'][0]['statistics']['likeCount']
         except IndexError:
-            self.title = self.url = self.veuw_count = self.like_count = None
+            self.title = None
+            self.url = None
+            self.view_count = None
+            self.like_count = None
 
     def __str__(self):
         return self.title
