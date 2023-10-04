@@ -1,39 +1,31 @@
-from src.channel import Channel
+import os
+from googleapiclient.discovery import build
 
 
-class Video(Channel):
-    def __init__(self, channel_id, video_id=None):
-        super().__init__(channel_id)
+class Video:
+    """Класс для представления видео"""
+    api_key: str = os.getenv('API_KEY')
+    youtube = build('youtube', 'v3', developerKey=api_key)
+
+    def __init__(self, video_id):
+
         self.video_id = video_id
-        self.title = None
-        self.url = None
-        self.view_count = None
-        self.like_count = None
-
-        if video_id:
-            try:
-                self.youtube = self.get_service().videos().list(
-                    part='snippet,statistics', id=self.video_id
-                ).execute()
-                self.video_data = self.youtube.get("items")[0]
-                self.title = self.video_data.get('snippet').get('title')
-                self.url = f'https://www.youtube.com/watch?v={self.video_id}'
-                self.view_count = int(self.video_data.get('statistics').get('viewCount'))
-                self.like_count = int(self.video_data.get('statistics').get('likeCount'))
-            except IndexError as e:
-                print(e)
-            except Exception as e:
-                self.title = None
-                self.url = None
-                self.view_count = None
-                self.like_count = None
-                print(f"An error occurred: {e}")
+        self.video_response = Video.youtube.videos().list(part='snippet,statistics,contentDetails,topicDetails',
+                                                          id=video_id).execute()
+        try:
+            self.title = self.video_response['items'][0]['snippet']['title']
+            self.url = 'https://youtu.be/gaoc9MPZ4bw' + video_id
+            self.veuw_count = self.video_response['items'][0]['statistics']['viewCount']
+            self.like_count = self.video_response['items'][0]['statistics']['likeCount']
+        except IndexError:
+            self.title = self.url = self.veuw_count = self.like_count = None
 
     def __str__(self):
         return self.title
 
 
 class PLVideo(Video):
-    def __init__(self, channel_id, video_id, playlist_id):
-        super().__init__(channel_id, video_id)
+    """Класс для представления плейлиста"""
+    def __init__(self, video_id, playlist_id):
+        super().__init__(video_id)
         self.playlist_id = playlist_id
