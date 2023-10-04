@@ -1,37 +1,46 @@
-import isodate as isodate
+import datetime
+import os
+import isodate
+from googleapiclient.discovery import build
+from typing import List
 
-from src.channel import Channel
-from datetime import timedelta
+from src.video import Video
 
 
-class Playlist:
+class PlayList:
+    api_key: str = os.getenv('API_KEY')
+    youtube = build('youtube', 'v3', developerKey=api_key)
+
     def __init__(self, playlist_id):
         self.playlist_id = playlist_id
-        youtube = Channel.get_service().playlistItems().list(
-            playlistId=self.playlist_id,
-            part='snippet,contentDetails,id,status',
-            maxResults=10,
-        ).execute()
-        playlist_data = youtube.get('items')[0]
-        self.title = playlist_data.get('snippet').get('title').split(".")[0]
-        self.url = f'https://www.youtube.com/playlist?list={self.playlist_id}'
-
-        video_ids = [video['contentDetails']['videoId'] for video in youtube['items']]
-        videos = Channel.get_service().videos().list(
-            part='contentDetails,statistics',
-            id=','.join(video_ids)
-        ).execute()
-        self.__videos = videos.get('items')
+        self.playlist_videos = PlayList.youtube.playlistItems().list(playlistId=self.playlist_id,
+                                                                     part='contentDetails ,snippet',
+                                                                     maxResults=50,
+                                                                     ).execute()
+        self.title = self.playlist_videos['items'][0]['snippet']['title'].split('.')[0]
+        self.url = 'https://www.youtube.com/playlist?list=' + self.playlist_id
+        self.video_ids: List[str] = [video['contentDetails']['videoId'] for video in self.playlist_videos['items']]
+        self.video_response = Video.youtube.videos().list(part='snippet,statistics,contentDetails,topicDetails',
+                                                          id=self.video_ids).execute()
 
     @property
     def total_duration(self):
-        total_duration = timedelta()
-        for video in self.__videos:
+        total_duration = datetime.timedelta()
+        for video in self.video_response['items']:
             # YouTube video duration is in ISO 8601 format
             iso_8601_duration = video['contentDetails']['duration']
-            total_duration += isodate.parse_duration(iso_8601_duration)
+            video_duration = isodate.parse_duration(iso_8601_duration)
+            total_duration += video_duration
         return total_duration
 
     def show_best_video(self):
-        best_video = max(self.__videos, key=lambda x: x["statistics"]["likeCount"])
-        return f"https://youtu.be/{best_video['id']}"
+
+        global best_video_url
+        best_like = 0
+        for video in self.video_response['items']:
+            video_id = video['id']
+            like_count = video['statistics']['likeCount']
+            if int(like_count) > best_like:
+                best_video_id = video_id
+                best_video_url = 'https://youtu.be/' + best_video_id
+        return best_video_url
