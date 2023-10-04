@@ -1,7 +1,6 @@
 import datetime
 import os
 import isodate
-
 from googleapiclient.discovery import build
 from typing import List
 
@@ -9,8 +8,6 @@ from src.video import Video
 
 
 class PlayList:
-    '''Класс для предсавления плейлиста'''
-
     api_key: str = os.getenv('API_KEY')
     youtube = build('youtube', 'v3', developerKey=api_key)
 
@@ -28,8 +25,6 @@ class PlayList:
 
     @property
     def total_duration(self):
-        '''Возвращает объект класса `datetime.timedelta` с суммарной длительность плейлиста'''
-
         total_duration = datetime.timedelta()
         for video in self.video_response['items']:
             # YouTube video duration is in ISO 8601 format
@@ -40,6 +35,7 @@ class PlayList:
 
     def show_best_video(self):
 
+        global best_video_url
         best_like = 0
         for video in self.video_response['items']:
             video_id = video['id']
